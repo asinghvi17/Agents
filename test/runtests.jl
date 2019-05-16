@@ -1,7 +1,7 @@
-using Test
-
 include("../src/Agents.jl")
 
-include("layers.jl")
-include("actor_critic.jl")
-include("simulation.jl")
+env = Agents.gym.make("CartPole-v0")
+
+agent = Agents.PolicyGradient(4, 2)
+
+Agents.simulate!(agent, env, episodes=200)
