@@ -1,4 +1,4 @@
-include("../src/Agents.jl")
+using Agents
 
 env = Agents.gym.make("CartPole-v0")
 
