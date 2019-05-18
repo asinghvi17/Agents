@@ -7,10 +7,10 @@ struct PolicyGradient{Policy, Optimizer}
 end
 
 function PolicyGradient(state_space::Integer, action_space::Integer;
-                        hidden=20, η=0.001, γ=0.9)
-    π = Chain(Dense(state_space, hidden, relu),
-              Dense(hidden, hidden, relu),
-              Dense(hidden, hidden, relu),
+                        hidden=40, η=0.001, γ=0.9)
+    π = Chain(LSTM(state_space, hidden),
+              Dense(hidden, hidden, elu),
+              Dense(hidden, hidden, elu),
               Dense(hidden, action_space), softmax)
     optimizer = ADAM(η)
     log_probabilities = TrackedReal{Float32}[]
@@ -19,8 +19,7 @@ function PolicyGradient(state_space::Integer, action_space::Integer;
 end
 
 function select_action!(agent::PolicyGradient, state)
-    probabilities = agent.π(reshape(state, :, 1))
-    distribution = Categorical(reshape(probabilities, :))
+    distribution = Categorical(agent.π(state))
     action = rand(distribution)
     push!(agent.log_probabilities, loglikelihood(distribution, [action]))
     action
@@ -41,7 +40,8 @@ normalize(xs::AbstractVector{T}) where T =
 
 function improve!(agent::PolicyGradient)
     returns = normalize(discount(agent.rewards, agent.γ))
-    π_loss = sum(-agent.log_probabilities .* returns)
+    π_loss = mean(-agent.log_probabilities .* returns)
+    Flux.reset!(agent.π)
     θ = params(agent.π)
     Δ = gradient(() -> π_loss, θ)
     update!(agent.optimizer, θ, Δ)

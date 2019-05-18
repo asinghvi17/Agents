@@ -4,17 +4,17 @@ using Flux, PyCall, Distributions, Makie
 using Flux.Tracker: TrackedReal, gradient, update!
 using Flux: @forward, params
 using Juno: @progress
-
-AbstractPlotting.inline!(true)
+using Makie: update!
 
 include("layers.jl")
 include("gym.jl")
 include("policy_gradient.jl")
-
+include("actor_critic.jl")
 
 function simulate!(agent, env; episodes=1, render=false, graph=true)
-    rewards = Float32[]
-    @progress "simulate!" for _ ∈ 1:episodes
+    rewards = Node([Point2f0(0)])
+    graph && (scene = lines(rewards, linewidth=10); display(scene))
+    @progress "simulate!" for episode ∈ 1:episodes
         episode_reward = 0.0f0
         state = env.reset()
         done = false
@@ -26,10 +26,9 @@ function simulate!(agent, env; episodes=1, render=false, graph=true)
             episode_reward += reward
             render && env.render()
         end
-        push!(rewards, episode_reward)
+        push!(rewards[], Point2f0(episode, episode_reward))
+        graph && (Makie.update!(scene); Makie.update_limits!(scene))
     end
-    graph ? plot(rewards) : mean(rewards)
 end
-
 
 end
